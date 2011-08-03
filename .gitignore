@@ -1,0 +1,7 @@
+/build/
+/dist/
+/nbproject/private/
+/test/
+*.log
+*.lck
+RandomWebWalk.properties
