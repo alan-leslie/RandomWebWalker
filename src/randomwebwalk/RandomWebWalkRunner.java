@@ -1,7 +1,11 @@
 package randomwebwalk;
 
+import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.security.auth.login.LoginException;
@@ -44,16 +48,20 @@ public class RandomWebWalkRunner {
 
         stumbleUpon,
         randomArticle,
+        trail,
         free
     };
-
     private Browser webBrowser = null;
     private final Logger theLogger;
     private WalkStatus walkStatus = WalkStatus.successfulStep;
     private int failureCount = 0;
     private final WalkType theType;
-    private final boolean shouldRandomize;    // how a random link should be picked
-    private final String defaultLinkText;     // the link that should be selected if applicable
+    private boolean shouldRandomize = false;    // how a random link should be picked
+    private String defaultLinkText = "";     // the link that should be selected if applicable
+    private URL initialURL = null; // starting URL
+    private final String theTrailFileName; // name of file that includes trail to be followed
+    private List<URL> theTrail = null;  // trail of urls to be visited
+    private Iterator<URL> trailIterator = null;
 
     /**
      *
@@ -61,34 +69,46 @@ public class RandomWebWalkRunner {
      * @param newLogger - valid logger for output info
      * @precon - as per invariant/param spec
      * @postcon - as per invariant
-    */
+     */
     public RandomWebWalkRunner(WalkType newType,
-            Logger newLogger) {
+            String trailFile,
+            Logger newLogger) throws MalformedURLException {
         theType = newType;
 
         // if the type is a trail 
         // load the file that contains the trail
         // maybe wait until start is called before doing that
         // problem may be with keeping a pointer to where we are in the trail
-        if (theType == WalkType.randomArticle) {
-            defaultLinkText = "Random article";
-            shouldRandomize = false;
-        } else {
-            if (theType == WalkType.stumbleUpon) {
-                defaultLinkText = "Stumble!";
+        switch (theType) {
+            case randomArticle:
+                defaultLinkText = "Random article";
+                initialURL = new URL("http://en.wikipedia.org/wiki/Main_Page");
                 shouldRandomize = false;
-            } else {
+                break;
+            case stumbleUpon:
+                defaultLinkText = "Stumble!";
+                initialURL = new URL("http://www.stumbleupon.com/login.php");
+                shouldRandomize = false;
+                break;
+            case trail:
+                shouldRandomize = false;
+                break;
+            case free:
                 defaultLinkText = "";
                 shouldRandomize = true;
-            }
+                break;
         }
 
+        theTrailFileName = trailFile;
         theLogger = newLogger;
-   }
+    }
+
+    void setInitialURL(URL newInitialURL) {
+        initialURL = newInitialURL;
+    }
 
     /**
      * Start up the walk by logging into the web site if required.
-     * @param initialURL - the initial URL (must be valid and non-null)
      * @param idString - a valid iidentifier or null
      * @param passwordString - the password for the identifier or null
      * @param profileId - a profile (defaults if invalid) identifier or null
@@ -101,8 +121,7 @@ public class RandomWebWalkRunner {
      * timeout.
      * @postcon - as per invariant
      */
-    public void startUp(URL initialURL,
-            String idString,
+    public void startUp(String idString,
             String passwordString,
             String profileId) throws WebDriverException {
         theLogger.log(Level.INFO, "Start up");
@@ -110,6 +129,9 @@ public class RandomWebWalkRunner {
         boolean isStumbleUpon = (theType == WalkType.stumbleUpon);
 
         try {
+            if (theType == WalkType.trail) {
+                initTrail();
+            }
             webBrowser.start(initialURL, isStumbleUpon, idString, passwordString);
             setStatus(WalkStatus.successfulStep);
         } catch (LoginException ex) {
@@ -137,7 +159,7 @@ public class RandomWebWalkRunner {
         return theType;
     }
 
-   /**
+    /**
      *
      * @precon - as per invariant
      * @postcon - the browser is pointing to the last page that was
@@ -147,7 +169,7 @@ public class RandomWebWalkRunner {
     public void restore() {
         Page theCurrentPage = webBrowser.getCurrentPage();
 
-        if(theCurrentPage == null){
+        if (theCurrentPage == null) {
             webBrowser.addNewPage();
         } else {
             if (webBrowser.hasPageMoved()) {
@@ -165,22 +187,22 @@ public class RandomWebWalkRunner {
         setStatus(RandomWebWalkRunner.WalkStatus.successfulStep);
     }
 
-  /**
-    *
-    * @return - whether the page that the browser is currently pointing to is
-    * different from the one last visited by the browser.
-    * @precon - as per invariant
-    * @postcon - as per invariant (no change to internal state).
-    */
+    /**
+     *
+     * @return - whether the page that the browser is currently pointing to is
+     * different from the one last visited by the browser.
+     * @precon - as per invariant
+     * @postcon - as per invariant (no change to internal state).
+     */
     public boolean hasPageMoved() {
         return webBrowser.hasPageMoved();
     }
 
-   /**
-    * @precon - as per invariant
-    * @postcon - loading of the page in the browser has been interrupted.
-    * @postcon - browser is closed.
-    */
+    /**
+     * @precon - as per invariant
+     * @postcon - loading of the page in the browser has been interrupted.
+     * @postcon - browser is closed.
+     */
     public void stop() {
         theLogger.log(Level.INFO, "Stop");
 
@@ -196,16 +218,16 @@ public class RandomWebWalkRunner {
         setStatus(WalkStatus.successfulStep);
     }
 
-   /**
-    * steps forward to next random link.
-    * @precon - as per invariant
-    * @postcon - that the browser has moved on one page and status is set to
-    * success.
-    * @postcon - or status is set as failed after x number of incorrect attempts.
-    * @postcon - or status is set to a value that reflects the reason for failure.
-    * @throws WebDriverException - if the step forward fails because of socket
-    * timeout.
-    */
+    /**
+     * steps forward to next random link.
+     * @precon - as per invariant
+     * @postcon - that the browser has moved on one page and status is set to
+     * success.
+     * @postcon - or status is set as failed after x number of incorrect attempts.
+     * @postcon - or status is set to a value that reflects the reason for failure.
+     * @throws WebDriverException - if the step forward fails because of socket
+     * timeout.
+     */
     public void step() throws WebDriverException {
         theLogger.log(Level.INFO, "Step");
         String currentPageURL = webBrowser.getCurrentPageURL();
@@ -216,20 +238,34 @@ public class RandomWebWalkRunner {
             Page webPage = webBrowser.getCurrentPage();
             Hyperlink link = null;
 
-            
-            // use the enum 
-            // one of the choices should be follow trail
-            // trail needs to be constructed also
-            if (shouldRandomize) {
-                link = webPage.getRandomLink();
-                if(webBrowser.hasAlreadyBeenVisited(link)){
-                    link = webPage.getRandomLink();
+            switch (theType) {
+                case stumbleUpon:
+                case randomArticle: {
+                    link = webPage.getLinkFromText(defaultLinkText);
+                    webBrowser.goForward(link);
                 }
-            } else {
-                link = webPage.getLinkFromText(defaultLinkText);
-            }
+                break;
+                case trail: {
+                    // todo - need to stop at end 
+                    if (trailIterator != null
+                            && trailIterator.hasNext()) {
+                        String theURL = trailIterator.next().toString();
+                        webBrowser.gotoURL(theURL);
+                    }
+                }
+                break;
+                default: {
+                    if (shouldRandomize) {
+                        link = webPage.getRandomLink();
+                        if (webBrowser.hasAlreadyBeenVisited(link)) {
+                            link = webPage.getRandomLink();
+                        }
+                    }
 
-            webBrowser.goForward(link);
+                    webBrowser.goForward(link);
+                }
+                break;
+            }
 
             Page newPage = webBrowser.getCurrentPage();
             String newPageURL = newPage.getURL();
@@ -269,12 +305,12 @@ public class RandomWebWalkRunner {
         }
     }
 
-   /**
-    * causes the browser to refresh the current page.
-    * @precon - as per invariant
-    * @postcon - as per invariant
-    * @throws WebDriverException - if there is a socket timeout.
-    */
+    /**
+     * causes the browser to refresh the current page.
+     * @precon - as per invariant
+     * @postcon - as per invariant
+     * @throws WebDriverException - if there is a socket timeout.
+     */
     public void refresh() throws WebDriverException {
         theLogger.log(Level.INFO, "Refresh");
         String currentPageURL = webBrowser.getCurrentPageURL();
@@ -311,13 +347,13 @@ public class RandomWebWalkRunner {
         }
     }
 
-   /**
-    * goes back to the previously (successfully visited) page.
-    * @precon - as per invariant
-    * @postcon - the browser is pointing to the previous page.
-    * @postcon - as per invariant
-    * @throws WebDriverException - if it was unsuccessful.
-    */
+    /**
+     * goes back to the previously (successfully visited) page.
+     * @precon - as per invariant
+     * @postcon - the browser is pointing to the previous page.
+     * @postcon - as per invariant
+     * @throws WebDriverException - if it was unsuccessful.
+     */
     public void goBack() throws WebDriverException {
         theLogger.log(Level.INFO, "GoBack");
         try {
@@ -335,14 +371,14 @@ public class RandomWebWalkRunner {
         }
     }
 
-   /**
-    * @return - whether the walk has been successfully started.
-    * @precon - as per invariant
-    * @postcon - as per invariant/return
-    */
+    /**
+     * @return - whether the walk has been successfully started.
+     * @precon - as per invariant
+     * @postcon - as per invariant/return
+     */
     public boolean isStarted() {
         if (webBrowser != null) {
-            if(webBrowser.containsLink(defaultLinkText)) {
+            if (webBrowser.containsLink(defaultLinkText)) {
                 return true;
             }
         }
@@ -350,20 +386,20 @@ public class RandomWebWalkRunner {
         return false;
     }
 
-   /**
-    * @return - the current status of the walk.
-    * @precon - as per invariant
-    * @postcon - as per invariant/return
-    */
+    /**
+     * @return - the current status of the walk.
+     * @precon - as per invariant
+     * @postcon - as per invariant/return
+     */
     public RandomWebWalkRunner.WalkStatus checkStatus() {
         return walkStatus;
     }
 
-   /**
-    * @return - whether the action required has failed or not.
-    * @precon - as per invariant
-    * @postcon - as per invariant/return
-    */
+    /**
+     * @return - whether the action required has failed or not.
+     * @precon - as per invariant
+     * @postcon - as per invariant/return
+     */
     public boolean hasFailed() {
         if (walkStatus == WalkStatus.successfulStep) {
             return true;
@@ -372,13 +408,13 @@ public class RandomWebWalkRunner {
         }
     }
 
-   /**
-    *
-    * @param newStatus - the new status for the walker
-    * @precon - as per invariant
-    * @postcon - as per invariant
-    * @postcon - status is as per the newStatus param
-    */
+    /**
+     *
+     * @param newStatus - the new status for the walker
+     * @precon - as per invariant
+     * @postcon - as per invariant
+     * @postcon - status is as per the newStatus param
+     */
     public void setStatus(WalkStatus newStatus) {
         theLogger.log(Level.INFO, "SetStatus: " + newStatus.toString(),
                 newStatus);
@@ -391,16 +427,16 @@ public class RandomWebWalkRunner {
         walkStatus = newStatus;
     }
 
-   /**
-    * checks whether the exception to be examined is a timeout. So this has
-    * nothing to do with the state of this object.
-    * @param ex - the exception to be examined
-    * @return - whether that exception is actually a timeout (usually a socket
-    * timeout).
-    * @precon - as per invariant
-    * @postcon - as per invariant
-    * @postcon - no change to internal state.
-    */
+    /**
+     * checks whether the exception to be examined is a timeout. So this has
+     * nothing to do with the state of this object.
+     * @param ex - the exception to be examined
+     * @return - whether that exception is actually a timeout (usually a socket
+     * timeout).
+     * @precon - as per invariant
+     * @postcon - as per invariant
+     * @postcon - no change to internal state.
+     */
     private boolean isExceptionTimeout(Exception ex) {
         boolean theResult = false;
 
@@ -418,6 +454,20 @@ public class RandomWebWalkRunner {
         return theResult;
     }
     
+    /**
+     *
+     * @precon - as per invariant
+     * @postcon - as per invariant/return value
+     */
+    private void initTrail(){
+        theTrail = new ArrayList<URL>();
+        trailIterator = theTrail.iterator();
+                // todo - read data from ltheTrailFileName
+        if(trailIterator.hasNext()){
+            initialURL = trailIterator.next();         
+        }
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {

@@ -26,7 +26,6 @@ public class RandomWebWalkController implements Runnable {
     private final RandomWebWalkRunner theRunner;
     private final String idString;  // user id
     private final String passwordString; // corresponding password
-    private URL initialURL; // starting URL
     private volatile boolean taskStopped = false;
     private final int BETWEEN_PAGE_SLEEP_TIME; // time to wait between page refresh
     private final RandomWebWalkRunner.WalkType theType;
@@ -41,43 +40,29 @@ public class RandomWebWalkController implements Runnable {
      * @postcon - as per invariant.
      */
     public RandomWebWalkController(Properties properties,
-            Logger newLogger) {
+            Logger newLogger) throws MalformedURLException {
         theLogger = newLogger;
 
         // Type R(andom article), S(tumble upon), F(ree), (T)Trail
         String typeString = properties.getProperty("Type", "F");
         char theTypeChar = typeString.charAt(0);
 
-        if(theTypeChar == 'R') {
+        if (theTypeChar == 'R') {
             theType = RandomWebWalkRunner.WalkType.randomArticle;
-            try {
-                initialURL = new URL("http://en.wikipedia.org/wiki/Main_Page");
-            } catch (MalformedURLException ex) {
-                theLogger.log(Level.SEVERE, null, ex);
-            }
         } else {
-            if(theTypeChar == 'S') {
+            if (theTypeChar == 'S') {
                 theType = RandomWebWalkRunner.WalkType.stumbleUpon;
-                try {
-                    initialURL = new URL("http://www.stumbleupon.com/login.php");
-                } catch (MalformedURLException ex) {
-                    theLogger.log(Level.SEVERE, null, ex);
-                }
             } else {
-                if(theTypeChar == 'T') {
-                    theType = RandomWebWalkRunner.WalkType.stumbleUpon;
-                    try {
-                        initialURL = new URL("http://www.stumbleupon.com/login.php");
-                    } catch (MalformedURLException ex) {
-                        theLogger.log(Level.SEVERE, null, ex);
-                    }
+                if (theTypeChar == 'T') {
+                    theType = RandomWebWalkRunner.WalkType.trail;
                 } else {
                     theType = RandomWebWalkRunner.WalkType.free;
                 }
             }
         }
-
-        theRunner = new RandomWebWalkRunner(theType, theLogger);
+        
+        String trailFile = properties.getProperty("TrailFileName", "");
+        theRunner = new RandomWebWalkRunner(theType, trailFile, theLogger);
 
         idString = properties.getProperty("UserId");
         passwordString = properties.getProperty("Password");
@@ -85,7 +70,7 @@ public class RandomWebWalkController implements Runnable {
 
         int intSleepTime = Integer.parseInt(sleepTimeProperty);
 
-        if(intSleepTime > 0){
+        if (intSleepTime > 0) {
             BETWEEN_PAGE_SLEEP_TIME = intSleepTime;
         } else {
             BETWEEN_PAGE_SLEEP_TIME = 25;
@@ -137,7 +122,7 @@ public class RandomWebWalkController implements Runnable {
             pauseTask();
         }
     }
-    
+
     /**
      *
      * @return - whether the walker has been interrupted.
@@ -162,8 +147,8 @@ public class RandomWebWalkController implements Runnable {
      * @param newInitialURL - a valid URL to connect to.
      */
     public void setInitialURL(URL newInitialURL) {
-        if(theType == RandomWebWalkRunner.WalkType.free){
-            initialURL = newInitialURL;
+        if (theType == RandomWebWalkRunner.WalkType.free) {
+            theRunner.setInitialURL(newInitialURL);
         }
     }
 
@@ -181,7 +166,7 @@ public class RandomWebWalkController implements Runnable {
     private void start() {
         if (!theRunner.isStarted()) {
             theRunner.stop();
-            theRunner.startUp(initialURL, idString, passwordString, profileId);
+            theRunner.startUp(idString, passwordString, profileId);
         } else {
             theRunner.restore();
         }
@@ -235,7 +220,7 @@ public class RandomWebWalkController implements Runnable {
                 Thread.sleep(100);
 
                 if (counter % 10 == 0) {
-                    int downCounter = BETWEEN_PAGE_SLEEP_TIME - (counter/10);
+                    int downCounter = BETWEEN_PAGE_SLEEP_TIME - (counter / 10);
                     statusLabel.setText("counter = " + downCounter);
                 }
             }
@@ -270,7 +255,7 @@ public class RandomWebWalkController implements Runnable {
      * @postcon -as per invariant/return spec.
      */
     public boolean needsStartPage() {
-        if(theRunner.getType() == RandomWebWalkRunner.WalkType.free){
+        if (theRunner.getType() == RandomWebWalkRunner.WalkType.free) {
             return true;
         }
 
@@ -355,9 +340,6 @@ public class RandomWebWalkController implements Runnable {
         if ((this.passwordString == null) ? (other.passwordString != null) : !this.passwordString.equals(other.passwordString)) {
             return false;
         }
-        if (this.initialURL != other.initialURL && (this.initialURL == null || !this.initialURL.equals(other.initialURL))) {
-            return false;
-        }
         if (this.taskStopped != other.taskStopped) {
             return false;
         }
@@ -375,7 +357,6 @@ public class RandomWebWalkController implements Runnable {
         int hash = 7;
         hash = 97 * hash + (this.idString != null ? this.idString.hashCode() : 0);
         hash = 97 * hash + (this.passwordString != null ? this.passwordString.hashCode() : 0);
-        hash = 97 * hash + (this.initialURL != null ? this.initialURL.hashCode() : 0);
         hash = 97 * hash + (this.taskStopped ? 1 : 0);
         hash = 97 * hash + this.BETWEEN_PAGE_SLEEP_TIME;
         hash = 97 * hash + (this.theType != null ? this.theType.hashCode() : 0);
