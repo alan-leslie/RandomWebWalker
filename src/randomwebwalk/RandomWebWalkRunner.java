@@ -104,7 +104,11 @@ public class RandomWebWalkRunner {
         theLogger = newLogger;
     }
 
-    void setInitialURL(URL newInitialURL) {
+    /**
+     * 
+     * @param newInitialURL
+     */
+    public void setInitialURL(URL newInitialURL) {
         initialURL = newInitialURL;
     }
 
