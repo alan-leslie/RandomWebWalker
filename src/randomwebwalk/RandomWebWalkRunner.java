@@ -66,6 +66,10 @@ public class RandomWebWalkRunner {
             Logger newLogger) {
         theType = newType;
 
+        // if the type is a trail 
+        // load the file that contains the trail
+        // maybe wait until start is called before doing that
+        // problem may be with keeping a pointer to where we are in the trail
         if (theType == WalkType.randomArticle) {
             defaultLinkText = "Random article";
             shouldRandomize = false;
@@ -212,6 +216,10 @@ public class RandomWebWalkRunner {
             Page webPage = webBrowser.getCurrentPage();
             Hyperlink link = null;
 
+            
+            // use the enum 
+            // one of the choices should be follow trail
+            // trail needs to be constructed also
             if (shouldRandomize) {
                 link = webPage.getRandomLink();
                 if(webBrowser.hasAlreadyBeenVisited(link)){

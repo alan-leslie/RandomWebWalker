@@ -44,7 +44,7 @@ public class RandomWebWalkController implements Runnable {
             Logger newLogger) {
         theLogger = newLogger;
 
-        // Type R(andom article), S(tumble upon), F(ree)
+        // Type R(andom article), S(tumble upon), F(ree), (T)Trail
         String typeString = properties.getProperty("Type", "F");
         char theTypeChar = typeString.charAt(0);
 
@@ -64,7 +64,16 @@ public class RandomWebWalkController implements Runnable {
                     theLogger.log(Level.SEVERE, null, ex);
                 }
             } else {
-                theType = RandomWebWalkRunner.WalkType.free;
+                if(theTypeChar == 'T') {
+                    theType = RandomWebWalkRunner.WalkType.stumbleUpon;
+                    try {
+                        initialURL = new URL("http://www.stumbleupon.com/login.php");
+                    } catch (MalformedURLException ex) {
+                        theLogger.log(Level.SEVERE, null, ex);
+                    }
+                } else {
+                    theType = RandomWebWalkRunner.WalkType.free;
+                }
             }
         }
 
