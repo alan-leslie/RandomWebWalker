@@ -1,5 +1,8 @@
 package randomwebwalk;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -66,7 +69,9 @@ public class RandomWebWalkRunner {
     /**
      *
      * @param newType - the type of walk required
+     * @param trailFile 
      * @param newLogger - valid logger for output info
+     * @throws MalformedURLException 
      * @precon - as per invariant/param spec
      * @postcon - as per invariant
      */
@@ -75,10 +80,6 @@ public class RandomWebWalkRunner {
             Logger newLogger) throws MalformedURLException {
         theType = newType;
 
-        // if the type is a trail 
-        // load the file that contains the trail
-        // maybe wait until start is called before doing that
-        // problem may be with keeping a pointer to where we are in the trail
         switch (theType) {
             case randomArticle:
                 defaultLinkText = "Random article";
@@ -251,6 +252,8 @@ public class RandomWebWalkRunner {
                             && trailIterator.hasNext()) {
                         String theURL = trailIterator.next().toString();
                         webBrowser.gotoURL(theURL);
+                    } else {
+                        // todo Pause? set halted = true anyway
                     }
                 }
                 break;
@@ -461,8 +464,35 @@ public class RandomWebWalkRunner {
      */
     private void initTrail(){
         theTrail = new ArrayList<URL>();
+        FileReader theReader = null;
+
+        try {
+            theReader = new FileReader(theTrailFileName);
+            BufferedReader in = new BufferedReader(theReader);
+            
+            String theURLAsString = null;
+            
+            while ((theURLAsString = in.readLine()) != null) {
+                try{
+                    URL theTrailURL = new URL(theURLAsString);
+                    theTrail.add(theTrailURL);
+                } catch(MalformedURLException ex) {
+                    theLogger.log(Level.WARNING, "Failed making URL from{0}", theURLAsString);
+                }
+            }
+        } catch (IOException e) {
+            // ...
+        } finally {
+            if (null != theReader) {
+                try {
+                    theReader.close();
+                } catch (IOException e) {
+                    /* .... */
+                }
+            }
+        }
+        
         trailIterator = theTrail.iterator();
-                // todo - read data from ltheTrailFileName
         if(trailIterator.hasNext()){
             initialURL = trailIterator.next();         
         }
