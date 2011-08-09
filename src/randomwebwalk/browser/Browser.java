@@ -110,10 +110,10 @@ public class Browser {
             webDriver.get(initialURL.toString());
 
             WebElement userNameElement = findElement(By.name("username"));
-            webDriver.senKeysToElement(userNameElement, idString);
+            webDriver.sendKeysToElement(userNameElement, idString);
 
             WebElement passwordElement = findElement(By.name("password"));
-            webDriver.senKeysToElement(passwordElement, passwordString);
+            webDriver.sendKeysToElement(passwordElement, passwordString);
 
             WebElement loginButtonElement = findElement(By.name("login"));
             webDriver.clickElement(loginButtonElement);

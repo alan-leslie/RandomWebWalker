@@ -71,7 +71,12 @@ public class RandomWebWalkUI extends JFrame {
 
                     try {
                         if (!initialURLStr.isEmpty()) {
-                            initialURL = new URL(initialURLStr);
+                            if(initialURLStr.contains("http://")){
+                                initialURL = new URL(initialURLStr);
+                            } else {
+                                String theFullURLStr = theController.getBaseURL() + initialURLStr;
+                                initialURL = new URL(theFullURLStr);                                
+                            }
                             isValidURL = true;
                         }
                     } catch (MalformedURLException ex) {
@@ -189,7 +194,7 @@ public class RandomWebWalkUI extends JFrame {
     private JPanel getStartPagePanel() {
         startPageTextField = new JTextField();
         startPageTextField.setColumns(30);
-        startPageLabel = new JLabel("Start page:", JLabel.TRAILING);
+        startPageLabel = new JLabel("Start page or user:", JLabel.TRAILING);
         startPageLabel.setLabelFor(startPageTextField);
 
         JPanel panelId = new JPanel();

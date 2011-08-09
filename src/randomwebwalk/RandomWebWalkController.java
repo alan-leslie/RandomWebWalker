@@ -31,11 +31,13 @@ public class RandomWebWalkController implements Runnable {
     private final RandomWebWalkRunner.WalkType theType;
     private final Logger theLogger;
     private final String profileId; // the firefox profile identifier
+    private String theBaseURL;  // the base URL 
 
     /**
      *
      * @param properties - got from the Random.properties file.
      * @param newLogger - valid logger.
+     * @throws MalformedURLException 
      * @precon - as per param spec.
      * @postcon - as per invariant.
      */
@@ -47,20 +49,24 @@ public class RandomWebWalkController implements Runnable {
         String typeString = properties.getProperty("Type", "F");
         char theTypeChar = typeString.charAt(0);
 
-        if (theTypeChar == 'R') {
-            theType = RandomWebWalkRunner.WalkType.randomArticle;
-        } else {
-            if (theTypeChar == 'S') {
+        switch(theTypeChar){
+            case 'R':
+                theType = RandomWebWalkRunner.WalkType.randomArticle;
+                break;
+            case 'S':
                 theType = RandomWebWalkRunner.WalkType.stumbleUpon;
-            } else {
-                if (theTypeChar == 'T') {
-                    theType = RandomWebWalkRunner.WalkType.trail;
-                } else {
-                    theType = RandomWebWalkRunner.WalkType.free;
-                }
-            }
+                break;
+            case 'D':
+                theType = RandomWebWalkRunner.WalkType.delicious;
+                theBaseURL = "http://delicious.com/";
+                break;
+            case 'T':
+                theType = RandomWebWalkRunner.WalkType.trail;
+                break;
+            default:
+                theType = RandomWebWalkRunner.WalkType.free;           
         }
-        
+         
         String trailFile = properties.getProperty("TrailFileName", "");
         theRunner = new RandomWebWalkRunner(theType, trailFile, theLogger);
 
@@ -148,6 +154,11 @@ public class RandomWebWalkController implements Runnable {
      */
     public void setInitialURL(URL newInitialURL) {
         if (theType == RandomWebWalkRunner.WalkType.free) {
+            theRunner.setInitialURL(newInitialURL);
+        }
+        
+        if (theType == RandomWebWalkRunner.WalkType.delicious) {
+            
             theRunner.setInitialURL(newInitialURL);
         }
     }
@@ -255,11 +266,21 @@ public class RandomWebWalkController implements Runnable {
      * @postcon -as per invariant/return spec.
      */
     public boolean needsStartPage() {
-        if (theRunner.getType() == RandomWebWalkRunner.WalkType.free) {
+        if (theRunner.getType() == RandomWebWalkRunner.WalkType.free ||
+                theRunner.getType() == RandomWebWalkRunner.WalkType.delicious) {
             return true;
         }
 
         return false;
+    }
+    /**
+     *
+     * @return the base url
+     * @precon - as per invariant.
+     * @postcon -as per invariant/return spec.
+     */
+    public String getBaseURL() {
+        return theBaseURL;
     }
 
     /**

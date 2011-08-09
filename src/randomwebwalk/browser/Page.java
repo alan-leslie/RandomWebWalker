@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 /**
@@ -103,6 +104,28 @@ public class Page {
         return theResult;
     }
 
+    /**
+     * 
+     * @param theLinkId 
+     * @return
+     * @precon - as per invariant
+     * @postcon - as per invariant/return value
+     */
+    public Hyperlink getLinkFromId(String theLinkId) {
+        Hyperlink theResult = null;
+        WebElement randomElement = null;
+
+        randomElement = webDriver.findElement(By.id(theLinkId));
+
+        if (randomElement == null) {
+            theLogger.log(Level.INFO, "Link id:{0} not found.", theLinkId);
+        } else {
+            theResult = new Hyperlink(webDriver, randomElement);
+        }
+
+        return theResult;
+    }
+    
     /**
      * 
      * @return - whether the header definition states that the page is in

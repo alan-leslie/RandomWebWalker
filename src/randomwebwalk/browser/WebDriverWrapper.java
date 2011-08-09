@@ -152,7 +152,7 @@ public class WebDriverWrapper {
         return theElement.getAttribute(string);
     }
 
-    synchronized void senKeysToElement(WebElement theElement, String theString) {
+    synchronized void sendKeysToElement(WebElement theElement, String theString) {
         theElement.sendKeys(theString);
     }
 

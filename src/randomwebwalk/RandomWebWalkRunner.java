@@ -51,9 +51,11 @@ public class RandomWebWalkRunner {
 
         stumbleUpon,
         randomArticle,
+        delicious,
         trail,
         free
     };
+    
     private Browser webBrowser = null;
     private final Logger theLogger;
     private WalkStatus walkStatus = WalkStatus.successfulStep;
@@ -92,6 +94,11 @@ public class RandomWebWalkRunner {
                 shouldRandomize = false;
                 break;
             case trail:
+                defaultLinkText = "";
+                shouldRandomize = false;
+                break;
+            case delicious:
+                defaultLinkText = "";
                 shouldRandomize = false;
                 break;
             case free:
@@ -138,6 +145,14 @@ public class RandomWebWalkRunner {
                 initTrail();
             }
             webBrowser.start(initialURL, isStumbleUpon, idString, passwordString);
+            
+            if(theType == WalkType.delicious){
+                Page webPage = webBrowser.getCurrentPage();
+                Hyperlink link = null;
+
+                link = webPage.getLinkFromText("Browse these bookmarks");
+                webBrowser.goForward(link);
+            }
             setStatus(WalkStatus.successfulStep);
         } catch (LoginException ex) {
             theLogger.log(Level.SEVERE, null, ex);
@@ -250,14 +265,20 @@ public class RandomWebWalkRunner {
                     webBrowser.goForward(link);
                 }
                 break;
+                case delicious: 
+                {
+                    link = webPage.getLinkFromId("nextLink");
+                    webBrowser.goForward(link);
+                }
+                break;
                 case trail: {
-                    // todo - need to stop at end 
                     if (trailIterator != null
                             && trailIterator.hasNext()) {
                         String theURL = trailIterator.next().toString();
                         webBrowser.gotoURL(theURL);
                     } else {
-                        // todo Pause? set halted = true anyway
+                     // todo - need to stop at end 
+                       pause();
                     }
                 }
                 break;
