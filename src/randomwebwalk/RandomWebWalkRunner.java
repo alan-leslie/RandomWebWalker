@@ -299,10 +299,7 @@ public class RandomWebWalkRunner {
             String newPageURL = newPage.getURL();
             theLogger.log(Level.INFO, "New page: {0}", newPageURL);
 
-            if (theType == WalkType.randomArticle
-                    || theType == WalkType.stumbleUpon) {
-                setStatus(WalkStatus.successfulStep);
-            } else {
+            if (theType == WalkType.free) {
                 if (!newPage.isInEnglish()) {
                     setStatus(WalkStatus.pageNotEnglish);
                 } else {
@@ -313,6 +310,8 @@ public class RandomWebWalkRunner {
                         setStatus(WalkStatus.successfulStep);
                     }
                 }
+            } else {
+                setStatus(WalkStatus.successfulStep);
             }
 
             theLogger.log(Level.INFO, "Status set");
