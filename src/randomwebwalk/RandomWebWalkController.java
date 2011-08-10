@@ -117,7 +117,12 @@ public class RandomWebWalkController implements Runnable {
                     pauseTask();
                     statusLabel.setText("Walking failed");
                 } else {
-                    pauseBetweenPages(stepRunnerStatus);
+                    if (stepRunnerStatus == RandomWebWalkRunner.WalkStatus.complete) {
+                        pauseTask();
+                        statusLabel.setText("Walking complete");
+                    } else {
+                        pauseBetweenPages(stepRunnerStatus);
+                    }
                 }
             }
         } catch (InterruptedException e) {

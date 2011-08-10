@@ -43,7 +43,7 @@ public class RandomWebWalkRunner {
         pageDeadEnd,
         loginFailure,
         failedStep
-    };
+    ,   complete};
 
     // type of walk - crucial to decision of where the walk starts, how a
     // random link is selected and decisions on walkStatus
@@ -272,13 +272,14 @@ public class RandomWebWalkRunner {
                 }
                 break;
                 case trail: {
-                    if (trailIterator != null
-                            && trailIterator.hasNext()) {
-                        String theURL = trailIterator.next().toString();
-                        webBrowser.gotoURL(theURL);
-                    } else {
-                     // todo - need to stop at end 
-                       pause();
+                    if (trailIterator != null){
+                       if(trailIterator.hasNext()) {
+                            String theURL = trailIterator.next().toString();
+                            webBrowser.gotoURL(theURL);
+                        } else {
+                         // todo - need to stop at end 
+                            setStatus(WalkStatus.complete);
+                        }
                     }
                 }
                 break;
@@ -311,7 +312,9 @@ public class RandomWebWalkRunner {
                     }
                 }
             } else {
-                setStatus(WalkStatus.successfulStep);
+                if(checkStatus() != WalkStatus.complete){
+                    setStatus(WalkStatus.successfulStep);
+                }
             }
 
             theLogger.log(Level.INFO, "Status set");
@@ -326,8 +329,9 @@ public class RandomWebWalkRunner {
             }
         }
 
-        if (checkStatus() != WalkStatus.successfulStep
-                && failureCount > 3) {
+        if (!(checkStatus() == WalkStatus.successfulStep ||
+                checkStatus() == WalkStatus.complete) &&
+                failureCount > 3) {
             setStatus(WalkStatus.failedStep);
         }
     }
