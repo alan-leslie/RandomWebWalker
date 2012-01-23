@@ -5,3 +5,4 @@
 *.log
 *.lck
 RandomWebWalk.properties
+dump*.png
