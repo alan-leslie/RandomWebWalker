@@ -42,7 +42,8 @@ public class RandomWebWalkUI extends JFrame {
 
     // @param images - needs to be three images at least
     public RandomWebWalkUI(BufferedImage[] images) {
-        pauseIcon = new ImageIcon(images[0]);
+        setTitle("Web Walk");
+		pauseIcon = new ImageIcon(images[0]);
         playIcon = new ImageIcon(images[1]);
         stopIcon = new ImageIcon(images[2]);
     }

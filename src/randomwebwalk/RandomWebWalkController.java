@@ -83,7 +83,13 @@ public class RandomWebWalkController implements Runnable {
         }
 
         profileId = properties.getProperty("ProfileId");
-    }
+            
+        String shouldDumpScreenString = properties.getProperty("ShouldDumpScreen", "false");
+        
+        if(shouldDumpScreenString.equalsIgnoreCase("true")){
+            theRunner.setShouldDump(true);
+        }
+	}
 
     /**
      * starts the walker thread running (so calls start up and controls stepping).

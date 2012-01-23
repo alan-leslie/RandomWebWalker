@@ -1,6 +1,7 @@
 package randomwebwalk;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -67,6 +68,10 @@ public class RandomWebWalkRunner {
     private final String theTrailFileName; // name of file that includes trail to be followed
     private List<URL> theTrail = null;  // trail of urls to be visited
     private Iterator<URL> trailIterator = null;
+    private boolean shouldDumpScreen = false;
+    private String dumpDirBase = "./dumpDir";
+    private String dumpDirName = dumpDirBase;    
+    private int dumpFileNumber = 1;
 
     /**
      *
@@ -329,10 +334,21 @@ public class RandomWebWalkRunner {
             }
         }
 
-        if (!(checkStatus() == WalkStatus.successfulStep ||
-                checkStatus() == WalkStatus.complete) &&
-                failureCount > 3) {
-            setStatus(WalkStatus.failedStep);
+        if (checkStatus() == WalkStatus.successfulStep) {
+            if(shouldDumpScreen){
+                String dumpFilePath = dumpDirName + "/dump" + Integer.toString(dumpFileNumber) + ".png";
+                
+                try {
+                    webBrowser.dumpScreen(dumpFilePath);
+                    ++dumpFileNumber;
+                } catch (IOException ex) {
+                    theLogger.log(Level.WARNING, null, ex);
+                }
+            }
+        } else {
+            if (failureCount > 3) {
+                setStatus(WalkStatus.failedStep);
+            }
         }
     }
 
@@ -456,6 +472,32 @@ public class RandomWebWalkRunner {
         }
 
         walkStatus = newStatus;
+    }
+    
+    /**
+     * 
+     * @param shouldDumpScreen
+     */
+    public void setShouldDump(boolean shouldDumpScreen) {
+        if (shouldDumpScreen) {
+            boolean exists = true;
+            int dirNumber = 1;
+
+            while (exists) {
+                dumpDirName = dumpDirBase + Integer.toString(dirNumber);
+                exists = (new File(dumpDirName)).exists();
+
+                if (exists) {
+                    ++dirNumber;
+                } 
+            }
+
+            boolean success = (new File(dumpDirName)).mkdir();
+            if (success) {
+                dumpFileNumber = 1;
+                this.shouldDumpScreen = shouldDumpScreen;
+            }
+        }
     }
 
     /**
